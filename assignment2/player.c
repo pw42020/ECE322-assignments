@@ -8,15 +8,14 @@
 
 int add_card(struct player* target, struct card* new_card)
 {
-	struct hand* temp;
-	temp = (struct hand*)malloc(sizeof(struct hand));
-	if (temp == NULL)
-	{
-		return -1;
-	}
-	temp->top = *new_card;
-	temp->next = target->card_list;
-	target->card_list = temp;
+
+	// getting temp ready
+	struct hand temp;
+
+	// new_card is now the top of the linked list card_list stack
+	temp.top = *new_card;
+	temp.next = target->card_list;
+	target->card_list = &temp;
 
 	return 0;
 }
