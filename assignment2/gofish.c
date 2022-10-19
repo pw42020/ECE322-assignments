@@ -64,6 +64,8 @@ int main(int args, char* argv[])
       {
         user_play(&user);
 
+        
+
         usergo = 0;
       }
       else
