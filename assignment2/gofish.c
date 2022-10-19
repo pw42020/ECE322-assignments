@@ -73,8 +73,6 @@ int main(int args, char* argv[])
         usergo = 1;
       }
 
-      printf("back");
-
 
     }// while(deck_instance->top_card != 51)
 

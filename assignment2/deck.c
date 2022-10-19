@@ -17,7 +17,7 @@ int shuffle()
   unsigned char decklength = 52;
   // initializing arrays suits and ranks to make easy initialization for deck
   char suits[4] = {'H','S','D','C'};
-  char ranks[13] = {'A','2','3','4','5','6','7','8','9','10','J','Q','K'};
+  char ranks[13] = {'A','2','3','4','5','6','7','8','9','X','J','Q','K'};
 
   // initializing first array
   struct card temparray[decklength];
@@ -30,11 +30,11 @@ int shuffle()
   char suit = -1; // rank count 
   for(i = 0; i < decklength; i++)
   {
-    if(i % 14 == 0)
+    if(i % 13 == 0)
     {
       suit += 1;
     }// if statement
-    struct card temp = {suits[suit], ranks[i % 14]};
+    struct card temp = {suits[suit], ranks[i % 13]};
 
     temparray[i] = temp;
 

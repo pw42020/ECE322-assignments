@@ -199,20 +199,30 @@ char user_play(struct player* target)
 {
     unsigned char error = 0;
     while(error == 0)
-    {
-        char* val = (char*)malloc(sizeof(char)*3);
+    {	
+		// entering rank, set in val (10 is Xx)
+        char val[1];
         printf("Player 1's turn, enter a Rank: ");
-        scanf("%s\n",&val);
+        scanf("%s", &val);
         
         // error checking to ensure player has at least one card of requested rank
 
         struct hand *temp = target->card_list;
 
+		// checking if user has a card with the same rank as requested
         unsigned char i;
         for(i = 0; i < target->hand_size; i++)
         {
-			printf("%s, %s", val, temp->top.rank);
-            if(val==temp->top.rank){ error = 1; free(val); return val; }
+			printf("%s, %s\n", val, temp->top.rank);
+            if(!strcmp(val, temp->top.rank)) // strcmp() comapres two strings, if they are equal then returns 0
+			{
+				error = 1; 
+
+				transfer_cards()
+				
+				
+				return val; 
+			}
 
             temp = temp->next;
         }
