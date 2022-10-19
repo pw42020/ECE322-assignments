@@ -8,14 +8,15 @@
 
 int add_card(struct player* target, struct card* new_card)
 {
-
 	// getting temp ready
-	struct hand temp;
+	struct hand* temp = (struct hand*)malloc(sizeof(struct hand));
+	
+	temp->top = *new_card;
+	temp->next = target->card_list;
+
 
 	// new_card is now the top of the linked list card_list stack
-	temp.top = *new_card;
-	temp.next = target->card_list;
-	target->card_list = &temp;
+	target->card_list = temp;
 
 	return 0;
 }
@@ -205,18 +206,17 @@ char user_play(struct player* target)
         
         // error checking to ensure player has at least one card of requested rank
 
-        struct hand *temp = (struct hand*)malloc(sizeof(target->card_list));
-        memcpy(temp, target->card_list,sizeof(target->card_list));
+        struct hand *temp = target->card_list;
 
         unsigned char i;
         for(i = 0; i < target->hand_size; i++)
         {
+			printf("%s, %s", val, temp->top.rank);
             if(val==temp->top.rank){ error = 1; free(val); return val; }
 
             temp = temp->next;
         }
 
-        printf("Error - must have at least one card from rank to play");
+        printf("Error - must have at least one card from rank to play\n");
     }
 }
-

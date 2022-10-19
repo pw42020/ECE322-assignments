@@ -11,24 +11,31 @@ int main( ) {
     unsigned char decklength = 52;
 
     shuffle();
-    struct card deez;
     
     deal_player_cards( &user );
 
-    struct hand* temp = user.card_list->next->next->next;
+    struct hand* hand;
+    hand = user.card_list;
+    struct card top;
+    struct card top2;
 
-    printBook( temp );
+    unsigned char i;
+    for(i = 0; i < 6; i++)
+    {
+        top = hand->top;
 
+        printBook( &top );
 
-
-
-
+        hand = hand->next;
+    }
 
    return 0;
 }
-
-void printBook( struct card *card ) {
+// testing method (ONLY USED FOR TESTING BECAUSE I KNOW IT WORKS LOL)
+void printBook( struct card* card ) {
 
     printf("Card suit: %c\n", card->suit);
     printf( "Card rank : %s\n", card->rank);
+
+    return;
 }

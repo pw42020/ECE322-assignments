@@ -21,6 +21,8 @@ int main(int args, char* argv[])
     //user = (struct player*)malloc(sizeof(struct player));
     //computer = (struct player*)malloc(sizeof(struct player));
 
+    
+
     // dealing cards to the players
     deal_player_cards( &user );
     //deal_player_cards(&computer);
@@ -28,7 +30,6 @@ int main(int args, char* argv[])
     // while there is still a card on the deck
     while( deck_instance.top_card != 51 )
     {
-      unsigned char yuh;
       unsigned char j;
 
       // printing out all beginning stuff before every move
@@ -39,21 +40,24 @@ int main(int args, char* argv[])
 
       for(j=0; j < user.hand_size; j++)
       {
-        //printf("%c%s ", temp->top.rank,temp->top.suit);
-
-        printBook( temp );
+        printf("%c%s ", temp->top.suit,temp->top.rank);
     
         temp = temp->next; // iterating to next card in list
       }
       printf("\n");
-      scanf("%d",yuh);
 
       printf("Player 1's Book - ");
-      for(j=0; j < (sizeof(user.book)/sizeof(char)); j++) { printf("%s ",user.book[j]); }
+      for(j=0; j < (sizeof(user.book)/sizeof(char)); j++)
+      {
+        if (user.book[j] != NULL) {printf("%s ",computer.book[j]);}
+      }
       printf("\n");
 
       printf("Player 2's Book - ");
-      for(j=0; j < (sizeof(computer.book)/sizeof(char)); j++) { printf("%s ",computer.book[j]); }
+      for(j=0; j < (sizeof(computer.book)/sizeof(char)); j++) 
+      {
+        if (computer.book[j] != NULL) {printf("%s ",computer.book[j]);}
+      }
       printf("\n");
 
       if(usergo)
@@ -69,6 +73,8 @@ int main(int args, char* argv[])
         usergo = 1;
       }
 
+      printf("back");
+
 
     }// while(deck_instance->top_card != 51)
 
@@ -81,6 +87,6 @@ int main(int args, char* argv[])
 
 void printBook( struct card *card ) {
 
-    printf("Card suit: %c\n", card->suit);
-    printf( "Card rank : %s\n", card->rank);
+    printf("Card suit: %s\n", card->suit);
+    printf( "Card rank : %c\n", card->rank);
 }

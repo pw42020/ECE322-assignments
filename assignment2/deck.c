@@ -87,9 +87,8 @@ int deal_player_cards(struct player* target)
     unsigned char i;
     int inittopcard = deck_instance.top_card;
 
-    for(i = inittopcard; i < inittopcard + 7; i++)
+    for(i = 0; i < 7; i++)
     {
-        if(i > 52) return 1; // if error occurs
 
         add_card(target, next_card());
 
@@ -102,6 +101,11 @@ int deal_player_cards(struct player* target)
 
 struct card* next_card()
 {
+    struct card* next_card;
+
+    next_card = &deck_instance.list[deck_instance.top_card];
+    
     deck_instance.top_card += 1;
-    return &deck_instance.list[deck_instance.top_card - 1];
+
+    return next_card;
 }
