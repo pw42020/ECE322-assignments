@@ -13,33 +13,15 @@ int main( ) {
     shuffle();
     struct card deez;
     
-    unsigned char i;
-    for (i = 0; i < 7; i++)
-    {
-        deez = deck_instance.list[i];
-        add_card( &user, &deez );
-    }
+    deal_player_cards( &user );
 
-    deez = user.card_list->top;
+    struct hand* temp = user.card_list->next->next->next;
 
-    printBook( &deez );
+    printBook( temp );
 
 
-    struct player* target;
-    target = (struct player*)malloc(sizeof(struct player));
 
-    char rank[2] = "10";
 
-    struct card Card1 = {'H', rank};
-    struct card* cptr = &Card1;
-
-    //printf("Card suit: %c\n", cptr->suit);
-    //printf( "Card rank : %s\n", cptr->rank);
- 
-    /* print Book1 info by passing address of Book1 */
-    //add_card(target, &Card1);
-
-    //printBook( &(target->card_list->top) );
 
 
    return 0;

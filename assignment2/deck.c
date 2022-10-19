@@ -68,7 +68,6 @@ int shuffle()
     // if random number has not already been chosen
     if(!inArr)
     {
-      printf("%d\n",j);
       deck_instance.list[j] = temparray[num];
       //printf("%d\n",num);
 
@@ -86,7 +85,7 @@ int deal_player_cards(struct player* target)
 {
     // for loop to instantiate player's and pc's hands
     unsigned char i;
-    int inittopcard = deck_instance.top_card = malloc(sizeof(int));
+    int inittopcard = deck_instance.top_card;
 
     for(i = inittopcard; i < inittopcard + 7; i++)
     {
@@ -95,6 +94,8 @@ int deal_player_cards(struct player* target)
         add_card(target, next_card());
 
     }// for loop instantiating player hands
+
+    target->hand_size = 7;
 
     return 0;
 }
