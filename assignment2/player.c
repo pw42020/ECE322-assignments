@@ -18,27 +18,33 @@ int add_card(struct player* target, struct card* new_card)
 	// new_card is now the top of the linked list card_list stack
 	target->card_list = temp;
 
+	target->hand_size += 1; // adding 1 to hand_size
+
 	return 0;
 }
 
-int remove_card(struct player* target, struct card* old_card)
+int remove_card(struct player* target, struct card* old_card)	// Evan Raftery
 {
-	struct hand* iterator = target->card_list;
+	struct hand* iterator = target->card_list;	// Temp pointers for iterating through the hand
 	struct hand* previous = NULL;
-	if (iterator == NULL)
+	if (iterator == NULL)	// Check for empty hand
 	{
 		return -1;
 	}
-	while (&(iterator->top) != old_card)
+	while (1)	// While the card is not found...
 	{
-		previous = iterator;
-		iterator = iterator->next;
-		if (iterator == NULL)
+		if (iterator == NULL)		// If at end of hand (If card not found)
 		{
 			return -1;
 		}
+		if (iterator->top.rank == old_card->rank && iterator->top.suit == old_card->suit)		// Found
+		{
+			break;
+		}
+		previous = iterator;		// Iterate
+		iterator = iterator->next;
 	}
-	if (previous != NULL)
+	if (previous != NULL)	// Fill the gap made by the removed card in the linked list
 	{
 		previous->next = iterator->next;
 	}
@@ -46,102 +52,108 @@ int remove_card(struct player* target, struct card* old_card)
 	{
 		target->card_list = iterator->next;
 	}
-	free(iterator);
+	target->hand_size--;	// Decrement hand size
+	free(iterator);		// Free the memory of the removed card
 	return 0;
 }
 
-char check_add_book(struct player* target)
+char check_add_book(struct player* target)	// Evan Raftery
 {
-	struct hand* iterator = target->card_list;
-        struct hand* previous = NULL;
-	unsigned char rank = iterator->top.rank;
-	unsigned char count = 0;
-        if (iterator == NULL)
-        {
-                return 0;
-        }
-        while (iterator != NULL)
-        {
-		if (iterator->top.rank == rank)
+	char ranks[13] = {'A','2','3','4','5','6','7','8','9','X','J','Q','K'};
+	unsigned char index;
+	char rank;
+	for(index = 0; index < 13; index++)	// Check every possible card, remove first book found
+	{
+		rank = ranks[index];
+		struct hand* iterator = target->card_list;	// Temp pointer for iterating through the hand
+		int count = 0;					// Running count of how many matches we've found for a certain rank
+		if (iterator == NULL)		// Return 0 if empty hand
+		{
+				return 0;
+		}
+		while (iterator != NULL)	// Iterate through entire hand
+		{
+		if (iterator->top.rank == rank)	// Match found
 		{
 			count++;
 		}
-                previous = iterator;
-                iterator = iterator->next;
-        }
-	if (count != 4)
-	{
-		return 0;
-	}
-	iterator = target->card_list;
-	previous = NULL;
-	while (iterator != NULL)
-	{
-                if (iterator->top.rank == rank)
-                {
-                        remove_card(target, &(iterator->top));
-			free(iterator);
-                }
-                previous = iterator;
-                iterator = iterator->next;
-	}
-	for (int i = 0; i < 7; i++)
-	{
-		if (target->book[i] == 0)
+				iterator = iterator->next;	// Iterate
+		}
+		if (count != 4)		// If we find a book, stop checking and add it
 		{
-			target->book[i] = rank;
-			break;
+			continue;
+		}
+		iterator = target->card_list;	// Reset our temp pointer
+		while (iterator != NULL)	// Now let's remove the cards and add them to the book
+		{
+			if (iterator->top.rank == rank)	// Found - remove card (we free the memory in remove_card)
+			{
+				remove_card(target, &(iterator->top));
+			}
+			iterator = iterator->next;	// Iterator
+		}
+		for (int i = 0; i < 7; i++)	// Find an empty slot in the player's book and add the rank to the book
+		{
+			if (target->book[i] == 0)
+			{
+				target->book[i] = rank;
+				target->book_total ++; // adding to target's book table 1
+				return rank;
+				//break;
+			}
 		}
 	}
-        return rank;
+        return 0; // return rank;	//NOTE TO SELF: THIS FUNCTION CHECKS FOR ALL BOOKS AT ONCE! IF YOU NEED TO CHANGE IT TO DO ONLY 1, PUT THIS RETURN STATEMENT AFTER YOU ASSIGN THE CHAR IN THE BOOK!
 }
+
 
 int search(struct player* target, char rank)
 {
 	struct hand* iterator = target->card_list;
-        struct hand* previous = NULL;
-        if (iterator == NULL)
-        {
-                return 0;
-        }
-        while (iterator->top.rank != rank)
-        {
-                previous = iterator;
-                iterator = iterator->next;
-                if (iterator == NULL)
-                {
-                        return 0;
-                }
-        }
-        return 1;
+	struct hand* previous = NULL;
+	if (iterator == NULL)
+	{
+			return 0;
+	}
+	unsigned char i;
+	for(i = 0; i < target->hand_size; i++)
+	{
+
+			if (iterator->top.rank == rank) // NEED THE INDEX!!!
+			{
+				return 1;
+			}
+			previous = iterator;
+			iterator = iterator->next;
+	}
+	return 0;
 }
 
-int transfer_cards(struct player* src, struct player* dest, char rank)
+int transfer_cards(struct player* src, struct player* dest, char rank)		// Evan Raftery
 {
-	struct hand* iterator = src->card_list;
-    struct hand* previous = NULL;
+	struct hand* iterator = src->card_list;		// Temp pointers to iterate through the hand
 	unsigned char found = 0;
 	unsigned char count = 0;
-        if (iterator == NULL)
-        {
-                return 0;
-        }
-        while (iterator != NULL)
-        {
-		if (iterator->top.rank == rank)
-		{
-			add_card(dest, &(iterator->top));
-			remove_card(src, &(iterator->top));
-			count++;
-		}
-                previous = iterator;
-                iterator = iterator->next;
-        }
-	if (found)
+	if (iterator == NULL)		// No cards in hand
+	{
+			return 0;
+	}
+	while (iterator != NULL)	// Check the hand for the requested rank
+	{
+	if (iterator->top.rank == rank)	// If match found
+	{
+		add_card(dest, &(iterator->top));
+		remove_card(src, &(iterator->top));
+		count++;		// Keep track of number found
+		found = 1;		// Set Boolean for "Have we found a card?" to True
+	}
+		iterator = iterator->next;	// Iterate
+	}
+	if (found)	// Cards transferred - return number moved
 	{
 		return count;
 	}
-        if (!found)
+        if (!found)	// No cards transferred - return 0
 	{
 		return 0;
 	}
@@ -149,7 +161,7 @@ int transfer_cards(struct player* src, struct player* dest, char rank)
 
 int game_over(struct player* target)
 {
-	if (target->book[6] != 0)
+	if(target->book_total == 7)
 	{
 		return 1;
 	}
@@ -162,19 +174,20 @@ int reset_player(struct player* target)
 	{
 		target->book[i] = 0;
 	}
-        struct hand* iterator = target->card_list;
-        struct hand* previous = NULL;
-        if (iterator == NULL)
-        {
-                return 0;
-        }
-        while (iterator != NULL)
-        {
-                previous = iterator;
-                iterator = iterator->next;
-		remove_card(target, &(iterator->top));
-		free(iterator);
-        }
+	struct hand* iterator = target->card_list;
+	struct hand* previous = NULL;
+	if (iterator == NULL)
+	{
+			return 0;
+	}
+	while (iterator != NULL)
+	{
+			previous = iterator;
+			iterator = iterator->next;
+	remove_card(target, &(iterator->top));
+	free(iterator);
+	}
+
 	return 0;
 
 }
@@ -182,7 +195,7 @@ int reset_player(struct player* target)
 char computer_play(struct player* target)
 {
 	struct hand* iterator = target->card_list;
-        struct hand* previous = NULL;
+	struct hand* previous = NULL;
 	unsigned char index = rand() % target->hand_size;
 	unsigned char i = 0;
 	while(i != index)
@@ -191,8 +204,8 @@ char computer_play(struct player* target)
 		iterator = iterator->next;
 		i++;
 	}
-	int chosen = iterator->top.rank;
-	return chosen;
+
+	return iterator->top.rank;
 }
 
 char user_play(struct player* target)
@@ -200,8 +213,8 @@ char user_play(struct player* target)
     unsigned char error = 0;
     while(error == 0)
     {	
-		// entering rank, set in val (10 is Xx)
-        char val[1];
+		// entering rank, set in val (10 is X)
+        char val[2];
         printf("Player 1's turn, enter a Rank: ");
         scanf("%s", &val);
         
@@ -213,15 +226,11 @@ char user_play(struct player* target)
         unsigned char i;
         for(i = 0; i < target->hand_size; i++)
         {
-			printf("%s, %s\n", val, temp->top.rank);
-            if(!strcmp(val, temp->top.rank)) // strcmp() comapres two strings, if they are equal then returns 0
+            if(temp->top.rank == val[0])
 			{
 				error = 1; 
 
-				transfer_cards()
-				
-				
-				return val; 
+				return temp->top.rank; 
 			}
 
             temp = temp->next;

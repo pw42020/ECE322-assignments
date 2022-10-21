@@ -94,8 +94,6 @@ int deal_player_cards(struct player* target)
 
     }// for loop instantiating player hands
 
-    target->hand_size = 7;
-
     return 0;
 }
 

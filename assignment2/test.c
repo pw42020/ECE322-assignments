@@ -11,23 +11,21 @@ int main( ) {
     unsigned char decklength = 52;
 
     shuffle();
+
+    struct card card1 = {'H','J'};
+    struct card card2 = {'D','J'};
+    struct card card3 = {'C','J'};
+    struct card card4 = {'S','J'};
     
-    deal_player_cards( &user );
+    
+    add_card( &user, &card1 );
+    add_card( &user, &card2 );
+    add_card( &user, &card3 );
+    add_card( &user, &card4 );
 
-    struct hand* hand;
-    hand = user.card_list;
-    struct card top;
-    struct card top2;
+    char booked = check_add_book( &user );
 
-    unsigned char i;
-    for(i = 0; i < 6; i++)
-    {
-        top = hand->top;
-
-        printBook( &top );
-
-        hand = hand->next;
-    }
+    printf("%c", booked);
 
    return 0;
 }
