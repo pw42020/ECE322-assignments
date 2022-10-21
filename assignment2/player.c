@@ -1,24 +1,18 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include "player.h"
 #include <string.h>
+#include "player.h"
 
 
-
-
-int add_card(struct player* target, struct card* new_card)
+int add_card(struct player* target, struct card* new_card)	// Evan Raftery & Patrick Walsh
 {
-	// getting temp ready
-	struct hand* temp = (struct hand*)malloc(sizeof(struct hand));
-	
+	struct hand* temp = (struct hand*)malloc(sizeof(struct hand));	// Temp pointer for adding the new card
+
 	temp->top = *new_card;
-	temp->next = target->card_list;
+	temp->next = target->card_list;		// New_card is now at the top of our hand
 
-
-	// new_card is now the top of the linked list card_list stack
 	target->card_list = temp;
-
-	target->hand_size += 1; // adding 1 to hand_size
+	target->hand_size += 1; 		// Increment hand_size
 
 	return 0;
 }
@@ -38,7 +32,7 @@ int remove_card(struct player* target, struct card* old_card)	// Evan Raftery
 		{
 			return -1;
 		}
-		if (iterator->top.rank == old_card->rank && iterator->top.suit == old_card->suit)		// Found
+		if (iterator->top.rank == old_card->rank && iterator->top.suit == old_card->suit)	// Found
 		{
 			break;
 		}
@@ -98,34 +92,30 @@ char check_add_book(struct player* target)	// Evan Raftery
 			if (target->book[i] == 0)
 			{
 				target->book[i] = rank;
-				target->book_total ++; // adding to target's book table 1
+				target->book_total ++; // Increment book_total (number of books a player has made)
 				return rank;
-				//break;
 			}
 		}
 	}
-        return 0; // return rank;	//NOTE TO SELF: THIS FUNCTION CHECKS FOR ALL BOOKS AT ONCE! IF YOU NEED TO CHANGE IT TO DO ONLY 1, PUT THIS RETURN STATEMENT AFTER YOU ASSIGN THE CHAR IN THE BOOK!
+        return 0;
 }
 
 
-int search(struct player* target, char rank)
+int search(struct player* target, char rank)	// Evan Raftery
 {
-	struct hand* iterator = target->card_list;
-	struct hand* previous = NULL;
-	if (iterator == NULL)
+	struct hand* iterator = target->card_list;	// Temp pointer for iterating through the hand
+	if (iterator == NULL)		// Check for empty hand
 	{
 			return 0;
 	}
 	unsigned char i;
 	for(i = 0; i < target->hand_size; i++)
 	{
-
-			if (iterator->top.rank == rank) // NEED THE INDEX!!!
-			{
-				return 1;
-			}
-			previous = iterator;
-			iterator = iterator->next;
+		if (iterator->top.rank == rank)		// If match found
+		{
+			return 1;
+		}
+		iterator = iterator->next;
 	}
 	return 0;
 }
@@ -158,6 +148,7 @@ int transfer_cards(struct player* src, struct player* dest, char rank)		// Evan 
 	{
 		return 0;
 	}
+	return 0;	// Program will not reach here, but we assume none transferred if it does - also clears up a warning
 }
 
 int game_over(struct player* target)	// Evan Raftery
@@ -171,75 +162,68 @@ int game_over(struct player* target)	// Evan Raftery
 
 int reset_player(struct player* target)		// Evan Raftery
 {
-	target->book_total = 0; // resetting book total
-	
+	target->book_total = 0;		// Reset book total
+
 	for (unsigned char i = 0; i < 7; i++)	// Reset book values to 0
 	{
 		target->book[i] = 0;
 	}
-    struct hand* newtemp = target->card_list;	// Iterator
+    	struct hand* newtemp = target->card_list;	// Iterator
 	struct hand* oldtemp;
-    if (newtemp == NULL)		// If hand is already empty
-    {
-         return 0;
-    }
-    while (target->hand_size > 0)		// While hand is not empty, remove the top card
-    {	
+    	if (newtemp == NULL)		// If hand is already empty
+    	{
+         	return 0;
+    	}
+    	while (target->hand_size > 0)		// While hand is not empty, remove the top card
+    	{
 		oldtemp = newtemp->next;
 		remove_card(target, &(newtemp->top));
 
 		newtemp = oldtemp;
-    }
+    	}
 	return 0;
-
-
-
 }
 
-char computer_play(struct player* target)
+char computer_play(struct player* target)	// Evan Raftery
 {
-	struct hand* iterator = target->card_list;
-	struct hand* previous = NULL;
-	unsigned char index = rand() % target->hand_size;
+	struct hand* iterator = target->card_list;	// Temp pointer to iterate through hand
+	unsigned char index = rand() % target->hand_size;	// Pick a random index to get the computer's choice
 	unsigned char i = 0;
 	while(i != index)
 	{
-		previous = iterator;
-		iterator = iterator->next;
+		iterator = iterator->next;	// Find the card corresponding to the choice
 		i++;
 	}
 
-	return iterator->top.rank;
+	return iterator->top.rank;	// Return the rank of the choice made
 }
 
-char user_play(struct player* target)
+char user_play(struct player* target)		// Patrick Walsh
 {
-    unsigned char error = 0;
-    while(error == 0)
-    {	
-		// entering rank, set in val (10 is X)
-        char val[2];
-        printf("Player 1's turn, enter a Rank: ");
-        scanf("%s", &val);
-        
-        // error checking to ensure player has at least one card of requested rank
+	unsigned char error = 0;
+    	while(error == 0)
+    	{
+		// Entering rank, set in val (10 is X)
+        	char val[2];
+        	printf("Player 1's turn, enter a Rank: ");
+        	scanf("%s", &val);
 
-        struct hand *temp = target->card_list;
+		// Error checking to ensure player has at least one card of requested rank
 
-		// checking if user has a card with the same rank as requested
-        unsigned char i;
-        for(i = 0; i < target->hand_size; i++)
-        {
-            if(temp->top.rank == val[0])
+        	struct hand *temp = target->card_list;
+
+		// Checking if user has a card with the same rank as requested
+        	unsigned char i;
+        	for(i = 0; i < target->hand_size; i++)
+        	{
+            		if(temp->top.rank == val[0])
 			{
-				error = 1; 
-
-				return temp->top.rank; 
+				error = 1;
+				return temp->top.rank;
 			}
-
-            temp = temp->next;
-        }
-
-        printf("Error - must have at least one card from rank to play\n");
-    }
+            		temp = temp->next;
+        	}
+        	printf("Error - must have at least one card from rank to play\n");
+    	}
+	return -1;	// Program will never reach here, but we throw an error if it does - also clears up a warning
 }

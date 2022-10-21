@@ -6,292 +6,257 @@
 #include "card.h"
 #include "deck.h"
 
-// Patrick Walsh
+// Patrick Walsh & Evan Raftery, ECE 322, Fall 2022
 
 void printBooks();
 char endGame();
 void printStatement(int usergo, int cardreal, char chosen);
 void printCardChosen( struct player* target, char player, char chosen );
 
-
-int main(int args, char* argv[]) 
+int main(int args, char* argv[])		// Patrick Walsh
 {
-  unsigned char play = 1; // if the user wants to play again at the end of the game
-  int usergo = 1; // 1 if user's turn, 0 if not
-  int cardreal; // 1 if search() returns with a card, 0 if search() does not
-  char chosen; // the chosen rank from the player
-  int gameover = 0; // integer from player.gameover(), if 1, go through gameover sequence
-  char playagain; // scanf() variable that if Y, play = 1, if N, play = 0;
-  char booked ='0'; // return of check_add_book()
+	unsigned char play = 1; 	// If the user wants to play again at the end of the game
+  	int usergo = 1; 		// 1 if user's turn, 0 if not
+  	int cardreal; 			// 1 if search() returns with a card, 0 if search() does not
+  	char chosen; 			// The chosen rank from the player
+  	int gameover = 0; 		// Integer from player.gameover(), if 1, go through gameover sequence
+  	char playagain; 		// Scanf() variable that if Y, play = 1, if N, play = 0;
+  	char booked ='0'; 		// Return of check_add_book()
 
-  while(play)
-  {
-    usergo = 1;
-    // initializing and shuffling deck
-    //deck_instance = (struct deck*)malloc(sizeof(struct deck));
-    shuffle();
+  	while(play)
+  	{
+    		usergo = 1;
+    		// Initializing and shuffling deck
+    		// Deck_instance = (struct deck*)malloc(sizeof(struct deck));
+    		shuffle();
 
-    // adding user and computer to the stack
-    //user = (struct player*)malloc(sizeof(struct player));
-    //computer = (struct player*)malloc(sizeof(struct player));
+    		// adding user and computer to the stack
+    		// user = (struct player*)malloc(sizeof(struct player));
+    		// computer = (struct player*)malloc(sizeof(struct player));
 
+    		user.book_total = 0;
+    		computer.book_total = 0;
 
-    user.book_total = 0;
-    computer.book_total = 0;
-    
+    		// Dealing cards to the players
+    		deal_player_cards( &user );
+    		deal_player_cards(&computer);
 
-    // dealing cards to the players
-    deal_player_cards( &user );
-    deal_player_cards(&computer);
+    		// While there is still a card on the deck
+    		while( deck_instance.top_card != 52 && !gameover)
+    		{
+      			unsigned char j;
 
-    // while there is still a card on the deck
-    while( deck_instance.top_card != 52 && !gameover)
-    {
-      unsigned char j;
+      			// Printing out all beginning stuff before every move
+      			// Printing player 1's hand
+      			printf("Player 1's Hand - ");
 
-      // printing out all beginning stuff before every move
-      //printing player 1's hand
-      printf("Player 1's Hand - ");
+      			// Copying user over to temp variable to iterate through for for loop
+      			struct hand* temp = user.card_list;
 
-      // copying user over to temp variable to iterate through for for loop
-      struct hand* temp = user.card_list;
+      			for(j=0; j < user.hand_size; j++)
+      			{
+        			printf("%c%c ", temp->top.rank, temp->top.suit);
+        			temp = temp->next; // Iterating to next card in list
+      			}
+      			printf("\n");
+      			printBooks();
 
-      for(j=0; j < user.hand_size; j++)
-      {
-        printf("%c%c ", temp->top.rank, temp->top.suit); // 
-    
-        temp = temp->next; // iterating to next card in list
-      }
-      printf("\n");
+      			printf("---------------------------------------------------------\n");
 
+      			if(usergo)
+      			{
+        			chosen = user_play( &user ); // Returns rank user wants to search computer for
 
-      printBooks();
+        			cardreal = search(&computer, chosen);
 
-      
-      // from here to line 81: printing player 2's hand for debug
-      printf("---------------------------------------------------------\n");
+        			// If computer has chosen rank
+        			if(cardreal)
+        			{
+          				printStatement( usergo, cardreal, chosen );
 
-      printf("Player 2's Hand - ");
+          				transfer_cards( &computer, &user, chosen );
 
-      temp = computer.card_list;
+          				booked = check_add_book( &user ); // Check if user has 4 of any rank
+          				if (booked != 0) { printf("Player 1 books %c\n",chosen); };
 
-      for(j=0; j < computer.hand_size; j++)
-      {
-        printf("%c%c ", temp->top.rank,temp->top.suit);
-    
-        temp = temp->next; // iterating to next card in list
-      }
-      printf("\n");
+          				usergo = 1; // User goes again
+          				printf("   -Player 1 gets another turn\n");
 
-      if(usergo)
-      {
-        chosen = user_play( &user ); // returns rank user wants to search computer for
+        			} else {
 
-        cardreal = search(&computer, chosen);
+          				printStatement( usergo, cardreal, chosen);
 
-        // if computer has chosen rank
-        if(cardreal) 
-        { 
-          printStatement( usergo, cardreal, chosen );
+          				add_card( &user, next_card());
 
-          transfer_cards( &computer, &user, chosen );
+          				if(user.card_list->top.rank == chosen)
+          				{
+            					printf("   -Player 1 gets another turn\n");
 
-          booked = check_add_book( &user ); // check if user has 4 of any rank
-          if (booked != 0) { printf("Player 1 books %c\n",chosen); };
+            					usergo = 1; // Computer now goes
+          				} else {
+            					usergo = 0;
+            					printf("   -Player 2's turn\n");
+          				}
 
-          usergo = 1; // user goes again
-          printf("   -Player 1 gets another turn\n");
+          				booked = check_add_book( &user ); // Check if user has 4 of any rank
+          				if (booked != 0) { printf("Player 1 books %c\n",booked); };
+        			}
+      			}
+      			else // Computer's turn
+      			{
+        			chosen = computer_play(&computer);
 
-        } else {
-          
-          printStatement( usergo, cardreal, chosen);
+        			printf("Player 2, enter a rank: %c\n", chosen);
 
-          add_card( &user, next_card());
+        			cardreal = search(&user, chosen);
 
-          if(user.card_list->top.rank == chosen)
-          {
-            printf("   -Player 1 gets another turn\n");
+        			if (cardreal) // If user has a card of rank chosen
+        			{
+          				printStatement( usergo, cardreal, chosen);
+          				transfer_cards( &user, &computer, chosen );
 
-            usergo = 1; // computer now goes
-          } else {
-            usergo = 0;
-            printf("   -Player 2's turn\n");
-          }
+          				booked = check_add_book( &computer ); // Check if computer has 4 of any rank
+          				if (booked != 0) { printf("Player 2 books %c\n",booked); };
 
-          booked = check_add_book( &user ); // check if user has 4 of any rank
-          if (booked != 0) { printf("Player 1 books %c\n",booked); };
+          				usergo = 0;
+          				printf("   -Player 2 gets another turn\n");
+        			} else { // If user does not have a card of rank chosen, computer goes fish
 
-          
-        }
-      }
-      else // computer's turn
-      {
-        chosen = computer_play(&computer);
+          				printStatement( usergo, cardreal, chosen );
 
-        printf("Player 2, enter a rank: %c\n", chosen);
+          				add_card( &computer, next_card());
 
-        cardreal = search(&user, chosen);
+          				if(computer.card_list->top.rank == chosen)
+          				{
+            					usergo = 0; // Computer now goes
+            					printf("   -Player 2 gets another turn\n");
+          				} else {
+            					usergo = 1;
+            					printf("   -Player 1's turn\n");
+          				}
 
-        if (cardreal) // if user has a card of rank chosen
-        {
-          printStatement( usergo, cardreal, chosen);
-          transfer_cards( &user, &computer, chosen );
+          				booked = check_add_book( &computer ); // Check if computer has 4 of any rank
+          				if (booked != 0) {
+            					printf("Player 2 books %c\n",booked);
+          				}
+        			}// Else inside else
+      			}// Else
 
-          booked = check_add_book( &computer ); // check if computer has 4 of any rank
-          if (booked != 0) { printf("Player 2 books %c\n",booked); };
+      			booked = 0; // IMPORTANT: MAKES SURE BOOKED REMAINS NOT INITIALIZED
 
-          usergo = 0;
-          printf("   -Player 2 gets another turn\n");
-        } else { // if user does not have a card of rank chosen, computer goes fish
+      			// If either player runs out of cards, redeal them seven cards
+      			if(user.hand_size == 0 && !gameover)
+      			{
+        			add_card( &user, next_card() );
+      			}
+      			if(computer.hand_size == 0 && !gameover)
+      			{
+        			add_card( &computer, next_card() );
+      			}
 
-          printStatement( usergo, cardreal, chosen );
+      			// Breaking the game if someone got 7 cards
+      			if(game_over( &user ) || game_over( &computer )) { break; }
 
-          add_card( &computer, next_card());
+      			printf("\n");
 
-          if(computer.card_list->top.rank == chosen)
-          {
-            usergo = 0; // computer now goes
-            printf("   -Player 2 gets another turn\n");
-          } else {
-            usergo = 1;
-            printf("   -Player 1's turn\n");
-          }
+    		}// While(deck_instance->top_card != 51)
 
-          booked = check_add_book( &computer ); // check if computer has 4 of any rank
-          if (booked != 0) { 
-            printf("Player 2 books %c\n",booked);
-          }     
-        }// else inside else
-      }// else 
+    		// If end game, print who won or if there was a tie
+    		if(computer.book_total > user.book_total){ printf("Player 2 Wins! %d-%d\n", computer.book_total, user.book_total); }
+    		else if(computer.book_total < user.book_total){ printf("Player 1 Wins! %d-%d\n",user.book_total, computer.book_total); }
+    		else { printf("Tie!\n"); }
+    		printBooks();
 
-      booked = 0; // IMPORTANT: MAKES SURE BOOKED REMAINS NOT INITIALIZED
-
-      // if either player runs out of cards, redeal them seven cards
-      if(user.hand_size == 0 && !gameover)
-      {
-        add_card( &user, next_card() );
-      }
-      if(computer.hand_size == 0 && !gameover)
-      {
-        add_card( &computer, next_card() );
-      }
-
-      // breaking the game if someone got 7 cards 
-      if(game_over( &user ) || game_over( &computer )) { break; }
-
-      printf("\n");
-
-    }// while(deck_instance->top_card != 51)
-
-    // if end game, print who won or if there was a tie
-    if(computer.book_total > user.book_total){ printf("Player 2 Wins! %d-%d\n", computer.book_total, user.book_total); }
-    else if(computer.book_total < user.book_total){ printf("Player 1 Wins! %d-%d\n",user.book_total, computer.book_total); }
-    else { printf("Tie!\n"); }
-    printBooks();
-
-
-    playagain = endGame();
-    if(playagain == 'Y')
-    {
-      printf("Shuffling deck...\n\n");
-      reset_player( &computer );
-      reset_player( &user );
-    } else {
-
-      printf("Exiting.\n");
-      break;
-    }
-
-    
-  }// while(play)
-
-  
-
+    		playagain = endGame();
+    		if(playagain == 'Y')
+    		{
+      			printf("Shuffling deck...\n\n");
+      			reset_player( &computer );
+      			reset_player( &user );
+    		} else {
+      			printf("Exiting.\n");
+      			break;
+    		}
+  	}// While(play)
   return 0;
 }
 
-void printBooks()
+void printBooks()	// Patrick Walsh
 {
-  unsigned char j;
-  // printing player 1's book
-  printf("Player 1's Book - ");
-  for(j=0; j < (sizeof(user.book)/sizeof(char)); j++)
-  {
-    if (user.book[j] != NULL) {printf("%c ",user.book[j]);}
-  }
-  printf("\n");
+  	unsigned char j;
+  	// Printing player 1's book
+  	printf("Player 1's Book - ");
+  	for(j=0; j < (sizeof(user.book)/sizeof(char)); j++)
+  	{
+    		if (user.book[j] != NULL) {printf("%c ",user.book[j]);}
+  	}
+  	printf("\n");
 
-
-  // printing player 2's book
-  printf("Player 2's Book - ");
-  for(j=0; j < (sizeof(computer.book)/sizeof(char)); j++) 
-  {
-    if (computer.book[j] != NULL) {printf("%c ",computer.book[j]);}
-  }
-  printf("\n");
+  	// Printing player 2's book
+  	printf("Player 2's Book - ");
+  	for(j=0; j < (sizeof(computer.book)/sizeof(char)); j++) 
+  	{
+    		if (computer.book[j] != NULL) {printf("%c ",computer.book[j]);}
+  	}
+  	printf("\n");
 }
 
-void printStatement(int usergo, int cardreal, char chosen)
+void printStatement(int usergo, int cardreal, char chosen)	// Patrick Walsh
 {
-  char array[2] = {'2','1'}; // made so if usergo = 0 (computer play) then array[0] == player 2 prints first
+  	char array[2] = {'2','1'}; // Made so if usergo = 0 (computer play) then array[0] == player 2 prints first
 
-  if (cardreal)
-  {
-    if(usergo){
-      printCardChosen( &user, array[usergo], chosen );
-      printCardChosen( &computer, array[usergo - 1], chosen);
-    } else {
-      printCardChosen( &computer, array[usergo], chosen);
-      printCardChosen( &user, array[usergo + 1], chosen );
-    } // if usergo
+  	if (cardreal)
+  	{
+    		if(usergo){
+      			printCardChosen( &user, array[usergo], chosen );
+      			printCardChosen( &computer, array[usergo - 1], chosen);
+    		} else {
+      			printCardChosen( &computer, array[usergo], chosen);
+      			printCardChosen( &user, array[usergo + 1], chosen );
+    		} // If usergo
+  	} else {
+    		int user2;
+    		if (usergo) {user2 = usergo - 1;} else {user2 = usergo + 1;}
 
+    		printf("   -Player %c has no %c's\n", array[user2], chosen);
+    		printf("   -GoFish, Player %c draws a card\n", array[usergo]);
 
+  	} // Else
+} // VOid printStatement()
 
-  } else {
-    int user2;
-    if (usergo) {user2 = usergo - 1;} else {user2 = usergo + 1;}
-
-    printf("   -Player %c has no %c's\n", array[user2], chosen);
-    printf("   -GoFish, Player %c draws a card\n", array[usergo]);
-
-  } // else
-} // void printStatement()
-
-void printCardChosen( struct player* target, char player, char chosen )
+void printCardChosen( struct player* target, char player, char chosen )		// Patrick Walsh
 {
-  printf("   -Player %c's Hand - ", player);
+  	printf("   -Player %c's Hand - ", player);
 
-  // copying user over to temp variable to iterate through for for loop
-  struct hand* temp = target->card_list;
+  	// Copying user over to temp variable to iterate through for for loop
+  	struct hand* temp = target->card_list;
 
-  unsigned char j;
-  for(j=0; j < target->hand_size; j++)
-  {
-    // if card from hand has same rank as chosen, print it
-    if (temp->top.rank == chosen) { printf("%c%c ", temp->top.rank,temp->top.suit); }
+  	unsigned char j;
+  	for(j=0; j < target->hand_size; j++)
+  	{
+    		// If card from hand has same rank as chosen, print it
+    		if (temp->top.rank == chosen) { printf("%c%c ", temp->top.rank,temp->top.suit); }
 
-    temp = temp->next; // iterating to next card in list
-  }
-  printf("\n");
-} // void printCardChosen()
+    		temp = temp->next; // Iterating to next card in list
+  	}
+  	printf("\n");
+} // Void printCardChosen()
 
-char endGame()
+char endGame()		// Patrick Walsh
 {
-  char playagain[2];
+  	char playagain[2];
 
-  while(playagain[0] != 'Y' && playagain[0] != 'N')
-  {
-    printf("Would you like to play again? [Y/N] ");
-    scanf("%s", playagain);
+  	while(playagain[0] != 'Y' && playagain[0] != 'N')
+  	{
+  		printf("Would you like to play again? [Y/N] ");
+    		scanf("%s", playagain);
 
-    if(playagain[0] != 'Y' && playagain[0] != 'N')
-    {
-      printf("Please enter something valid\n");
-    }
-  }
+    		if(playagain[0] != 'Y' && playagain[0] != 'N')
+    		{
+      			printf("Please enter something valid\n");
+    		}
+  	}
+	return playagain[0];
 
- 
-  return playagain[0];
-
-  printf("\n"); // adding a little extra space to tell where the program is better
+  	printf("\n"); // Adding a little extra space to tell where the program is better
 }
