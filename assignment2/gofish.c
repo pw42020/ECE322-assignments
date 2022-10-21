@@ -200,7 +200,7 @@ int main(int args, char* argv[])
         printf("Shuffling deck...\n\n");
         reset_player( &computer );
         reset_player( &user );
-
+        printf("Hello world!\n");
       }
     }// while(deck_instance->top_card != 51)
 
