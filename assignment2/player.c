@@ -33,6 +33,7 @@ int remove_card(struct player* target, struct card* old_card)	// Evan Raftery
 	}
 	while (1)	// While the card is not found...
 	{
+		if(target->hand_size == 1) { break; }
 		if (iterator == NULL)		// If at end of hand (If card not found)
 		{
 			return -1;
@@ -159,36 +160,39 @@ int transfer_cards(struct player* src, struct player* dest, char rank)		// Evan 
 	}
 }
 
-int game_over(struct player* target)
+int game_over(struct player* target)	// Evan Raftery
 {
-	if(target->book_total == 7)
+	if(target->book[6] != 0)
 	{
 		return 1;
 	}
 	return 0;
 }
 
-int reset_player(struct player* target)
+int reset_player(struct player* target)		// Evan Raftery
 {
-	for (unsigned char i = 0; i < 7; i++)
+	target->book_total = 0; // resetting book total
+	
+	for (unsigned char i = 0; i < 7; i++)	// Reset book values to 0
 	{
 		target->book[i] = 0;
 	}
-	struct hand* iterator = target->card_list;
-	struct hand* previous = NULL;
-	if (iterator == NULL)
-	{
-			return 0;
-	}
-	while (iterator != NULL)
-	{
-			previous = iterator;
-			iterator = iterator->next;
-	remove_card(target, &(iterator->top));
-	free(iterator);
-	}
+    struct hand* newtemp = target->card_list;	// Iterator
+	struct hand* oldtemp;
+    if (newtemp == NULL)		// If hand is already empty
+    {
+         return 0;
+    }
+    while (target->hand_size > 0)		// While hand is not empty, remove the top card
+    {	
+		oldtemp = newtemp->next;
+		remove_card(target, &(newtemp->top));
 
+		newtemp = oldtemp;
+    }
 	return 0;
+
+
 
 }
 
