@@ -3,10 +3,13 @@
 
 int main()
 {
-    while(1)
+    int i = 0;
+    while(i != 3)
     {
         printf("Testing...\n");
         sleep(1);
+
+        i += 1;
     }
 
     return 0;

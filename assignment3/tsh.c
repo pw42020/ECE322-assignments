@@ -167,54 +167,71 @@ int main(int argc, char **argv)
 */
 void eval(char *cmdline) 
 {
+    // checking to see if any job has finished, and if so, removing it from jobs
+    unsigned char i;
+    int status = 1;
+    for(i = 0; i < sizeof(jobs) / sizeof(struct job_t); i++)
+    {
+        status = kill(jobs[i].pid, 0);
+        if (status != 0){
+            deletejob(jobs, status);
+        }
+    }
+
+    printf("Hello world!\n");
+    
+
+    sigset_t mask, prev_mask;
+
     char *argv[MAXARGS];
     char buf[MAXLINE];
     int bg;
     pid_t pid;
 
+    sigfillset(&mask);
+
     strcpy(buf, cmdline);
     bg = parseline(buf, argv);
     if(argv[0] == NULL) { return; } // ignore empty lines
 
-    int builtin = builtin_cmd(argv);
-
-    if( !strcmp(argv[0], "^C") ) // if user wants to terminate foreground process
+    if(!builtin_cmd(argv))
     {
-        sigint_handler(SIGINT);
-        builtin = 1;
-    }
+        // pausing all signals
+        sigprocmask(SIG_BLOCK, &mask, &prev_mask);
 
-    if(!builtin)
-    {
         if ((pid = fork()) == 0) // child user runs job
         {
+            // unpausing all signals for child
+            sigprocmask(SIG_SETMASK, &prev_mask, NULL);
+            
             if (execve(argv[0], argv, environ) < 0)
             {
-                printf("%s: Command not found. \n", argv[0]);
+                printf("%s: Command not found.\n", argv[0]);
                 exit(0);
             }
+            
         }
-        if(!bg)
+        if(!bg) // if a foreground process
         {
             int status;
             if(waitpid(pid, &status, 0) < 0)
             {
                 unix_error("waitfg: waitpid error");
             }
-            else { // adding foreground job
+            // avoiding races, allowing process to be added to job first
+            if( (argv[0][0] == '.') && (argv[0][1] == '/') ){ addjob(jobs, pid, FG, cmdline); } // adding job to jobs if its executing a file
+            
+            
+            sigprocmask(SIG_SETMASK, &prev_mask, NULL); // unpausing all signals for parent
 
-                addjob(jobs, pid, FG, cmdline);
-                waitfg(pid);
-            }
         }
         else if (bg) // if a background process
         {
-
-            addjob(jobs, pid, BG, cmdline); // adding job to jobs
+            addjob(jobs, pid, BG, cmdline);
 
             int jid = pid2jid(pid);
 
-            printf("(%d) [%d] %s", jid, pid, cmdline); // printing out background job
+            printf("[%d] (%d) %s\n", jid, pid, cmdline); // printing out background job
         }
     }
 
@@ -293,6 +310,12 @@ int builtin_cmd(char **argv)
         listjobs(jobs);
         return 1;
     }
+    if( !strcmp(argv[0], "^C") ) // if user wants to terminate foreground process
+    {
+        sigint_handler(SIGINT);
+        
+        return 1;
+    }
 
     return 0;     /* not a builtin command */
 }
@@ -310,11 +333,9 @@ void do_bgfg(char **argv)
  */
 void waitfg(pid_t pid)
 {
-    struct job_t *job = getjobpid(jobs, pid); // getting the job from the pid
+    struct job_t *job = getjobpid(jobs, pid);
 
-    waitpid(pid, job->state, WNOHANG); // WNOHANG is to return the second the job finishes
-
-    deletejob(jobs, pid); // deleting job from jobs
+    while(job->state == 1);
 
     return;
 }
@@ -332,6 +353,12 @@ void waitfg(pid_t pid)
  */
 void sigchld_handler(int sig) 
 {
+    int child_status;
+
+    pid_t cpid = getpid(); // getting child pid
+    
+    pid_t waitpid = wait(&child_status);
+
     return;
 }
 
@@ -346,20 +373,15 @@ void sigint_handler(int sig)
     pid_t pid;
     int jid;
     pid = fgpid(jobs);
+
     jid = pid2jid(pid);
 
-    struct job_t *job = getjobpid(jobs, pid);
-
-    kill(pid, sig);
-
-    waitpid(pid, job->state, WNOHANG);
-
-    deletejob(jobs, pid);
-
-    char output[100];
-    sprintf(output, 100, "Job [%d] (%d) terminated by signal %d\n", jid, pid, sig);
-
-    write(stdout, output, sizeof(output) + 1);
+    if(pid) // sending signal interrupt to parent's pid
+    { 
+        kill(pid, SIGINT); 
+        deletejob(jobs, pid);
+        printf("Job [%d] (%d) terminated by signal %d\n", jid, pid, sig);
+    }
 
     return;
 }
