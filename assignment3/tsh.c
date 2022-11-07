@@ -14,6 +14,8 @@
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <errno.h>
+
+
 #include "csapp.h"
 
 /* Misc manifest constants */
@@ -309,6 +311,7 @@ int builtin_cmd(char **argv)
  */
 void do_bgfg(char **argv) 
 {
+    // note: 37 is ASCII for % sign
     pid_t pid;
     struct job_t *job;
     char fstr[10] = {0};
@@ -318,6 +321,12 @@ void do_bgfg(char **argv)
     if(argv[1] == NULL) // checking if there is an argument for bg/fg
     {
         printf("%s command requires PID or %cjobid argument\n", argv[0], 37);
+        return;
+    }
+
+    if ( !isdigit(argv[1][0]) && (argv[1][0] != '%')) // if first character isn't even a number
+    {
+        printf("%s: argument must be a PID or %cjobid\n", argv[0], 37);
         return;
     }
 
@@ -336,7 +345,7 @@ void do_bgfg(char **argv)
 
         if (job == NULL)
         {
-            printf("%d: No such job\n", jid);
+            printf("%c%d: No such job\n", 37, jid);
             return;
         }
 
@@ -360,9 +369,8 @@ void do_bgfg(char **argv)
     else if(!strcmp(argv[0], "fg")) // if looking to move a background process into foreground
     {
         job->state = FG;
-        printf("[%d] (%d) %s", job->jid, job->pid, job->cmdline);
         kill(job->pid, SIGCONT); // sending continue signal to pid
-        waitfg(pid);
+        waitfg(job->pid);
     }
 
     return;
@@ -445,7 +453,6 @@ void sigint_handler(int sig)
  */
 void sigtstp_handler(int sig) 
 {
-
     // getting foreground job from jobs list
     pid_t pid;
     int jid;
