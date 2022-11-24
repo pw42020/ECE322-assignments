@@ -378,10 +378,16 @@ void* mm_malloc (size_t size) {
     reqSize = ALIGNMENT * ((size + ALIGNMENT - 1) / ALIGNMENT);
   }
 
+  int *iptr;
+  iptr = mem_heap_hi(); // get last address of heap before adding bytes for reqSize, will become address of thing malloc'd
+
+  mem_sbrk(reqSize); // incrementing total size of heap
+
+
   // Implement mm_malloc.  You can change or remove any of the above
   // code.  It is included as a suggestion of where to start.
   // You will want to replace this return statement...
-  return NULL; 
+  return iptr; 
 }
 
 /* Free the block referenced by ptr. */
@@ -389,6 +395,15 @@ void mm_free (void *ptr) {
   size_t payloadSize;
   BlockInfo * blockInfo;
   BlockInfo * followingBlock;
+
+  if(ptr > mem_heap_lo() && ptr < mem_heap_hi()) // pointer is in the heap
+  {
+    
+  }
+  else {
+    fprintf(stderr, "ptr is outside of heap.");
+    return NULL;
+  }
 
   // Implement mm_free.  You can change or remove the declaraions
   // above.  They are included as minor hints.
