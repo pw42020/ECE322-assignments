@@ -360,6 +360,10 @@ void* mm_malloc (size_t size) {
   size_t blockSize;
   size_t precedingBlockUseTag;
 
+  // variables I add
+  BlockInfo* freeBlock;
+  int total;
+
   // Zero-size requests get NULL.
   if (size == 0) {
     return NULL;
@@ -378,16 +382,43 @@ void* mm_malloc (size_t size) {
     reqSize = ALIGNMENT * ((size + ALIGNMENT - 1) / ALIGNMENT);
   }
 
-  int *iptr;
-  iptr = mem_heap_hi(); // get last address of heap before adding bytes for reqSize, will become address of thing malloc'd
+  size_t *iptr;
+  BlockInfo* block = searchFreeList(reqSize);
 
-  mem_sbrk(reqSize); // incrementing total size of heap
+  if(block == NULL){ // if there is no free block of size reqSize
+    iptr = mem_heap_hi(); // get last address of heap before adding bytes for reqSize, will become address of thing malloc'd
+
+    requestMoreSpace(reqSize); // incrementing total size of heap
+    ptrFreeBlock = searchFreeList(reqSize);
+    removeFreeBlock(ptrFreeBlock);
 
 
-  // Implement mm_malloc.  You can change or remove any of the above
-  // code.  It is included as a suggestion of where to start.
-  // You will want to replace this return statement...
-  return iptr; 
+    examine_heap();
+
+    return iptr; // return starting pointer of ptrFreeBlock
+
+  } else {
+    
+    // code finding how many BlockInfos the freeBlock found by searchFreeList is
+    freeBlock = FREE_LIST_HEAD;
+    while (freeBlock != NULL){
+      if (freeBlock == block) {
+        break;
+      } else {
+        total += 1;
+        freeBlock = freeBlock->next;
+      } // else
+    } // while
+
+    iptr =  (size_t*)UNSCALED_POINTER_ADD(mem_heap_lo(), total);
+
+    removeFreeBlock(freeBlock);
+
+    examine_heap();
+
+    return iptr; 
+
+  } // else
 }
 
 /* Free the block referenced by ptr. */
