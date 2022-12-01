@@ -11,6 +11,9 @@
  *   in memory.
  *-------------------------------------------------------------------- */
 
+// Patrick Walsh
+// Did not attempt extra credit
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
@@ -148,7 +151,7 @@ static void insertFreeBlock(BlockInfo* freeBlock) {
   if (oldHead != NULL) {
     oldHead->prev = freeBlock;
   }
-  freeBlock->prev = NULL;
+  // freeBlock->prev = NULL;
   FREE_LIST_HEAD = freeBlock;
 }      
 
@@ -194,7 +197,7 @@ static void coalesceFreeBlock(BlockInfo* oldBlock) {
     // Use this size to find the block info for that block.
     freeBlock = (BlockInfo*)UNSCALED_POINTER_SUB(blockCursor, size);
     // Remove that block from free list.
-    printf("Coalescing %p\n", freeBlock);
+
     removeFreeBlock(freeBlock);
 
     // Count that block's size and update the current block pointer.
@@ -386,43 +389,40 @@ void* mm_malloc (size_t size) {
     reqSize = ALIGNMENT * ((size + ALIGNMENT - 1) / ALIGNMENT);
   }
 
-  ptrFreeBlock = searchFreeList(reqSize);
+  ptrFreeBlock = (BlockInfo*)searchFreeList(reqSize); // searching for free block of size reqSize
 
   if(ptrFreeBlock == NULL){ // if there is no free ptrFreeBlock of size reqSize
     requestMoreSpace(reqSize); // incrementing total size of heap
-    ptrFreeBlock = searchFreeList(reqSize);
+    ptrFreeBlock = (BlockInfo*)searchFreeList(reqSize);
   }
-  precedingBlockUseTag = ptrFreeBlock->sizeAndTags & TAG_PRECEDING_USED;
+  precedingBlockUseTag = ptrFreeBlock->sizeAndTags & TAG_PRECEDING_USED; // taking preceding block tag
   blockSize = SIZE(ptrFreeBlock->sizeAndTags);
 
-  if(reqSize < blockSize - MIN_BLOCK_SIZE) // if we need to split the free ptrFreeBlock
+  if(blockSize - reqSize >= MIN_BLOCK_SIZE) // if we need to split the free ptrFreeBlock
   {
     // get pointer of first part of the ptrFreeBlock
     // insert a new free ptrFreeBlock at the pointer at the end of reqSize
-    ptrFreeBlock->sizeAndTags = reqSize | precedingBlockUseTag | TAG_USED; // adding if previous ptrFreeBlock is used and adding that this ptrFreeBlock is now used
+    ptrFreeBlock->sizeAndTags = reqSize | precedingBlockUseTag | TAG_USED; // updating ptrFreeBlock sizeAndTags
     nextBlock = (BlockInfo*)UNSCALED_POINTER_ADD(ptrFreeBlock, reqSize); // stating next ptrFreeBlock is at point at ptrFreeBlock + reqSize
-    nextBlock->sizeAndTags = blockSize - reqSize | TAG_PRECEDING_USED; // stating previous ptrFreeBlock is used, current is not
+    nextBlock->sizeAndTags = (blockSize - reqSize) | TAG_PRECEDING_USED; // stating previous ptrFreeBlock is used, current is not
 
     // setting the next ptrFreeBlock's boundary tag (only for free blocks so ptrFreeBlock doesn't need one)
-    nextBlockFoot = (size_t*)UNSCALED_POINTER_ADD(nextBlock, SIZE(nextBlock->sizeAndTags) - WORD_SIZE);
-    *nextBlockFoot = nextBlock->sizeAndTags;
-    printf("blockSize was too big, making new free block %p\n", nextBlock);
+    *((size_t*)UNSCALED_POINTER_ADD(ptrFreeBlock, blockSize - WORD_SIZE)) = nextBlock->sizeAndTags;
     insertFreeBlock(nextBlock); // inserting nextBlock into free ptrFreeBlock list
 
   } else {
-
-    ptrFreeBlock->sizeAndTags = blockSize | precedingBlockUseTag | TAG_USED;
-    nextBlock = (BlockInfo*)UNSCALED_POINTER_ADD(ptrFreeBlock, reqSize);
-    nextBlock->sizeAndTags |= TAG_PRECEDING_USED;
-    nextBlockFoot = (size_t*)UNSCALED_POINTER_ADD(nextBlock, SIZE(nextBlock->sizeAndTags) - WORD_SIZE);
-    *nextBlockFoot = nextBlock->sizeAndTags;
-
+    ptrFreeBlock->sizeAndTags = blockSize | precedingBlockUseTag | TAG_USED; // updating ptrFreeBlock sizeAndTags
+    // changing next block to say that preceding block is used
+    nextBlock = (BlockInfo*)UNSCALED_POINTER_ADD(ptrFreeBlock, blockSize);
+    nextBlock->sizeAndTags |= TAG_PRECEDING_USED; // updating that preceding block is used
+    if(nextBlock->sizeAndTags & TAG_USED == 0) // if nextBlock is free
+    {
+      *((size_t*)UNSCALED_POINTER_ADD(nextBlock, SIZE(nextBlock->sizeAndTags) - WORD_SIZE)) = nextBlock->sizeAndTags; // updating footer to nextBlock
+    }
   }
-  printf("Mallocing %p\n", ptrFreeBlock);
-  removeFreeBlock(ptrFreeBlock);
-  examine_heap();
+  removeFreeBlock(ptrFreeBlock); // removing block that has been mallocd
 
-  return UNSCALED_POINTER_ADD(ptrFreeBlock, WORD_SIZE);
+  return UNSCALED_POINTER_ADD(ptrFreeBlock, WORD_SIZE); // returning ptr to mallocd block
 }
 
 /* Free the block referenced by ptr. */
@@ -432,31 +432,20 @@ void mm_free (void *ptr) {
   BlockInfo * followingBlock;
   size_t* boundary_tag = NULL;
 
-  blockInfo = (BlockInfo*)UNSCALED_POINTER_SUB(ptr, WORD_SIZE);
-  payloadSize = SIZE(blockInfo->sizeAndTags); // getting size of blockInfo
+  blockInfo = (BlockInfo*)UNSCALED_POINTER_SUB(ptr, WORD_SIZE); // getting block that is requested by user to be freed
+  payloadSize = SIZE(blockInfo->sizeAndTags) - WORD_SIZE; // getting size of blockInfo
   blockInfo->sizeAndTags &= ~(TAG_USED); // saying that blockInfo is no longer used
 
   // creating boundary tag at the end of blockInfo
-  boundary_tag = (size_t*)UNSCALED_POINTER_ADD(blockInfo, payloadSize - WORD_SIZE);
-  boundary_tag = blockInfo->sizeAndTags;
+  *((size_t*)UNSCALED_POINTER_ADD(blockInfo, payloadSize)) = blockInfo->sizeAndTags;
 
-  followingBlock = (BlockInfo*)UNSCALED_POINTER_ADD(blockInfo,  payloadSize);
-  if(followingBlock != NULL) {
-    followingBlock->sizeAndTags &= ~(TAG_PRECEDING_USED);
-
-    if(followingBlock->sizeAndTags & TAG_USED == ~TAG_USED) // if followingBlock is free, therefore also having a footer
-    {
-      *((size_t*)(UNSCALED_POINTER_ADD(followingBlock, SIZE(followingBlock->sizeAndTags) - WORD_SIZE))) = followingBlock->sizeAndTags;
-    }
-    
-  } // saying that blockInfo is no longer used
+  // updating followingBlock sizeAndTags
+  followingBlock = (BlockInfo*)UNSCALED_POINTER_ADD(blockInfo,  SIZE(blockInfo->sizeAndTags));
+  followingBlock->sizeAndTags &= ~(TAG_PRECEDING_USED);
   
   // // inserting and coalescing blockInfo into the free block list
   insertFreeBlock(blockInfo);
   coalesceFreeBlock(blockInfo);
-
-  printf("Freeing %p\n", blockInfo);
-  examine_heap();
 
   // Implement mm_free.  You can change or remove the declaraions
   // above.  They are included as minor hints.
