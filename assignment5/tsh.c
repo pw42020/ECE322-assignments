@@ -17,6 +17,7 @@
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <errno.h>
+#include <fcntl.h>
 
 /* Misc manifest constants */
 #define MAXLINE    1024   /* max line size */
@@ -338,6 +339,15 @@ int builtin_cmd(char **argv)
         do_bgfg(argv);
         return 1;
     }
+    /*assignment 5 code*/
+    if(argv[1] != NULL)
+    {
+        if (!strcmp(argv[1], ">")) // if looking at sending argv[0] to argv[2]
+        {
+            sendToFile(argv[0], argv[2]);
+            return 1;
+        }
+    }
 
     return 0;     /* not a builtin command */
 }
@@ -521,6 +531,30 @@ void sigtstp_handler(int sig)
 /*********************
  * End signal handlers
  *********************/
+
+/**********************
+* Start assignment 5
+**********************/
+
+void sendToFile(char **fd0, char **fd1)
+{
+    int file = open(fd1, O_WRONLY | O_CREAT, 0777); // opening fd1
+    fflush(stdout); close(fileno(stdout)); // closing stdout to open it out as fd1
+    dup2(file, fileno(stdout)); // writing output to fd1
+    char *argv[2] = {fd0, NULL};
+    execv(fd0, argv); // executing ls
+
+    // returning output to stdout
+    fflush(file);
+    close(file);
+    dup2(fileno(stdout), file);
+    dup2(fileno(stderr), fileno(stdout));
+}
+
+
+/**********************
+* End assignment 5
+**********************/
 
 /***********************************************
  * Helper routines that manipulate the job list
