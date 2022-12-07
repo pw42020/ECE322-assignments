@@ -231,7 +231,75 @@ void eval(char *cmdline)
             // unpausing all signals for child
             Sigprocmask(SIG_SETMASK, &prev_mask, NULL);
             Setpgid(0, 0); // setting pgid for child to be 0,0 to not interfere with shell
+
+            /*Assignment 5*/
+            int i = 0;
+            int j;
+            while(argv[i] != NULL)
+            {
+                // output operator
+                if(!strcmp(argv[i], ">"))
+                { 
+                    int file = open(argv[i+1], O_WRONLY | O_CREAT, S_IRWXU|S_IRWXG|S_IRWXO); // opening fd1
+                    close(fileno(stdout)); // flushing and closing stdout
+                    dup2(file, fileno(stdout)); // changing output to file
+                    j = i;
+                    // keeps everything in argv before i
+                    while(argv[j] != NULL)
+                    {
+                        argv[j] = NULL;
+                        j++;
+                    }
+                }
+                // input operator
+                else if(!strcmp(argv[i], "<"))
+                {
+                    int file = open(argv[i+1], O_WRONLY | O_CREAT, S_IRWXU|S_IRWXG|S_IRWXO); // opening fd1
+                    close(fileno(stdin)); // flushing and closing stdin
+                    dup2(file, fileno(stdin)); // changing output to file
+                    j = i;
+                    // loop that takes out the >, <, 2>, and/or >>
+                    while(argv[j] != NULL)
+                    {
+                        argv[j] = argv[j+1];
+                        j++;
+                    }
+                }
+                // append operator
+                else if(!strcmp(argv[i], ">>"))
+                { 
+                    int file = open(argv[i+1], O_WRONLY | O_CREAT | O_APPEND, S_IRWXU|S_IRWXG|S_IRWXO); // opening fd1
+                    close(fileno(stdout)); // flushing and closing stdout
+                    dup2(file, fileno(stdout)); // changing output to file
+                    printf("\0"); 
+                    j = i;
+                    // keeps everything in argv before i
+                    while(argv[j] != NULL)
+                    {
+                        argv[j] = NULL;
+                        j++;
+                    }
+                }
+                // error operator
+                else if(!strcmp(argv[i], "2>"))
+                {
+                    int file = open(argv[i+1], O_WRONLY | O_CREAT, S_IRWXU|S_IRWXG|S_IRWXO); // opening fd1
+                    close(fileno(stderr)); // flushing and closing stderr
+                    dup2(file, fileno(stderr)); // changing output to file
+                    j = i;
+                    // keeps everything in argv before i
+                    while(argv[j] != NULL)
+                    {
+                        argv[j] = NULL;
+                        j++;
+                    }
+                }
+                i++;
+            }
+
             
+            //printf("%s %s %s\n", argv[0], argv[1], argv[2]);
+
             if (execve(argv[0], argv, environ) < 0) // executing process
             {
                 printf("%s: Command not found.\n", argv[0]);
@@ -325,6 +393,8 @@ int parseline(const char *cmdline, char **argv)
  */
 int builtin_cmd(char **argv)
 {
+    int wentInIf = 0;
+
     if ( !strcmp(argv[0], "quit") ) // if user wants to quit shell
     {
         exit(1);
@@ -332,25 +402,17 @@ int builtin_cmd(char **argv)
     else if( !strcmp(argv[0], "jobs") ) // if user wants to list jobs
     {
         listjobs(jobs);
-        return 1;
+        wentInIf = 1;
     }
     else if ( (!strcmp(argv[0], "bg")) || (!strcmp(argv[0], "fg")) ) // if user wants to put a job in the foreground or background (or restart process)
     {
         do_bgfg(argv);
-        return 1;
-    }
-    /*assignment 5 code*/
-    if(argv[1] != NULL)
-    {
-        if (!strcmp(argv[1], ">")) // if looking at sending argv[0] to argv[2]
-        {
-            sendToFile(argv[0], argv[2]);
-            return 1;
-        }
+        wentInIf = 1;
     }
 
-    return 0;     /* not a builtin command */
+    return wentInIf;     /* not a builtin command */
 }
+
 
 /* 
  * do_bgfg - Execute the builtin bg and fg commands
@@ -426,10 +488,20 @@ void do_bgfg(char **argv)
  * waitfg - Block until process pid is no longer the foreground process
  */
 void waitfg(pid_t pid) 
-{
+{   int i = 0;
     while(fgpid(jobs) == pid) // waiting for foreground process to finish or stop
     {
         Sleep(1);
+        // DEBUG CODE
+        if (i > 2)
+        {
+            deletejob(jobs, pid);
+        }
+        else {
+            printf("Foreground pid: %d\n", fgpid(jobs));
+            listjobs(jobs);
+            i += 1;
+        }
     }
 
     return;
@@ -453,7 +525,7 @@ void sigchld_handler(int sig)
 
     pid = Waitpid(-1, &child_status, WUNTRACED | WNOHANG); // reaping child
 
-    if(pid > 0) // if there are no errors
+    if(pid > 0 && getjobpid(jobs, pid) != NULL) // if there are no errors
     {
         // won't delete SIGTSTP'd SIGCHLDs as their state has already been made ST
         if(getjobpid(jobs, pid)->state == FG || getjobpid(jobs, pid)->state == BG) // if SIGCHLD is sent from foreground or background
@@ -531,30 +603,6 @@ void sigtstp_handler(int sig)
 /*********************
  * End signal handlers
  *********************/
-
-/**********************
-* Start assignment 5
-**********************/
-
-void sendToFile(char **fd0, char **fd1)
-{
-    int file = open(fd1, O_WRONLY | O_CREAT, 0777); // opening fd1
-    fflush(stdout); close(fileno(stdout)); // closing stdout to open it out as fd1
-    dup2(file, fileno(stdout)); // writing output to fd1
-    char *argv[2] = {fd0, NULL};
-    execv(fd0, argv); // executing ls
-
-    // returning output to stdout
-    fflush(file);
-    close(file);
-    dup2(fileno(stdout), file);
-    dup2(fileno(stderr), fileno(stdout));
-}
-
-
-/**********************
-* End assignment 5
-**********************/
 
 /***********************************************
  * Helper routines that manipulate the job list
@@ -702,7 +750,7 @@ void listjobs(struct job_t *jobs)
 		    printf("listjobs: Internal error: job[%d].state=%d ", 
 			   i, jobs[i].state);
 	    }
-	    printf("%s", jobs[i].cmdline);
+	    printf("%s\n", jobs[i].cmdline);
 	}
     }
 }

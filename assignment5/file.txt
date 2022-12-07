@@ -1,7 +1,10 @@
-csapp.c
+deez nuts!csapp.c
 csapp.h
+deeznuts.txt
+error.txt
 file.txt
 helpfunc.c
+in.txt
 io
 Makefile
 myint
