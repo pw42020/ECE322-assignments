@@ -190,7 +190,7 @@ int main(int argc, char **argv)
 	eval(cmdline);
 	fflush(stdout);
 	fflush(stdout);
-    } 
+    }
 
     _exit(0); /* control never reaches here */
 }
@@ -209,6 +209,8 @@ int main(int argc, char **argv)
 void eval(char *cmdline) 
 {   
     sigset_t mask, prev_mask;
+
+    int doExecve = 1;
 
     char *argv[MAXARGS];
     char buf[MAXLINE];
@@ -240,7 +242,7 @@ void eval(char *cmdline)
                 // output operator
                 if(!strcmp(argv[i], ">"))
                 { 
-                    int file = open(argv[i+1], O_WRONLY | O_CREAT, S_IRWXU|S_IRWXG|S_IRWXO); // opening fd1
+                    int file = open(argv[i+1], O_WRONLY | O_CREAT | O_TRUNC, S_IRWXU|S_IRWXG|S_IRWXO); // opening fd1
                     close(fileno(stdout)); // flushing and closing stdout
                     dup2(file, fileno(stdout)); // changing output to file
                     j = i;
@@ -294,15 +296,70 @@ void eval(char *cmdline)
                         j++;
                     }
                 }
+                else if(!strcmp(argv[i], "|")) // pipe
+                {
+                    int fd[2];// file descriptors
+                    pipe(fd); // piping file descriptors
+                    
+                    pid_t pid1 = Fork();
+                    if (pid1 == 0)
+                    {   // making child pid1 the thing that's taking input 
+
+                        close(fd[0]); // closing read              
+                        dup2(fd[1], fileno(stdout));
+                        close(fd[1]);
+                        j = i; // taking out all stuff after |
+                        while(argv[j] != NULL)
+                        {
+                            argv[j] = NULL;
+                            j++;
+                        }   
+                        printf("Fortnite battle royale!! \n");
+                    } else if (pid1 != 0) // parent
+                    { // making parent the thing that's outputting to input
+
+                        pid_t pid2 = Fork();
+                        if(pid2 == 0){
+                            close(fd[1]); // closing read
+                            dup2(fd[0], fileno(stdin));
+                            close(fd[0]);
+                            j = 0; // moving i->end of array to 0->i-1
+                            while(j != i)
+                            {
+                                argv[j] = argv[i+j+1];
+                                j++;
+                            }
+                            while(argv[j] != NULL) // taking out duplicates in array
+                            {
+                                argv[j] = NULL;
+                                j++;
+                            }   
+                        } else {
+                            close(fd[0]);
+                            close(fd[1]);
+                            waitpid(-pid1, NULL, 0);
+                            waitpid(-pid2, NULL, 0);
+                            j = 0;
+                            doExecve = 0; // making it so error message won't go through
+                            while(argv[j] != NULL) // changing all of argv to NULL
+                            {
+                                argv[j] = NULL;
+                            }
+                        }
+                    } // end if
+                }
                 i++;
             }
 
             
-            //printf("%s %s %s\n", argv[0], argv[1], argv[2]);
+            // printf("%s %s %s\n", argv[0], argv[1], argv[2]);
 
             if (execve(argv[0], argv, environ) < 0) // executing process
             {
-                printf("%s: Command not found.\n", argv[0]);
+                if(doExecve)
+                {
+                    printf("%s: Command not found.\n", argv[0]);
+                }
                 _exit(0);
             }
             
@@ -488,20 +545,20 @@ void do_bgfg(char **argv)
  * waitfg - Block until process pid is no longer the foreground process
  */
 void waitfg(pid_t pid) 
-{   int i = 0;
+{   // int i = 0;
     while(fgpid(jobs) == pid) // waiting for foreground process to finish or stop
     {
         Sleep(1);
         // DEBUG CODE
-        if (i > 2)
-        {
-            deletejob(jobs, pid);
-        }
-        else {
-            printf("Foreground pid: %d\n", fgpid(jobs));
-            listjobs(jobs);
-            i += 1;
-        }
+        // if (i > 2)
+        // {
+        //     deletejob(jobs, pid);
+        // }
+        // else {
+        //     // printf("Foreground pid: %d\n", fgpid(jobs));
+        //     listjobs(jobs);
+        //     i += 1;
+        // }
     }
 
     return;

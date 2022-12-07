@@ -1,9 +1,9 @@
-deez nuts!csapp.c
+csapp.c
 csapp.h
-deeznuts.txt
 error.txt
 file.txt
 helpfunc.c
+input.txt
 in.txt
 io
 Makefile
@@ -15,6 +15,7 @@ mysplit
 mysplit.c
 mystop
 mystop.c
+out.txt
 README
 sdriver.pl
 test
