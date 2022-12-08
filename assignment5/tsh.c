@@ -296,16 +296,16 @@ void eval(char *cmdline)
                         j++;
                     }
                 }
-                else if(!strcmp(argv[i], "|")) // pipe
+                else if(!strcmp(argv[i], "|")) // pipe 
                 {
                     int fd[2];// file descriptors
                     pipe(fd); // piping file descriptors
                     
                     pid_t pid1 = Fork();
                     if (pid1 == 0)
-                    {   // making child pid1 the thing that's taking input 
+                    {   // making child pid1 the thing that's taking input
 
-                        close(fd[0]); // closing read              
+                        close(fd[0]); // closing read
                         dup2(fd[1], fileno(stdout));
                         close(fd[1]);
                         j = i; // taking out all stuff after |
@@ -314,7 +314,6 @@ void eval(char *cmdline)
                             argv[j] = NULL;
                             j++;
                         }   
-                        printf("Fortnite battle royale!! \n");
                     } else if (pid1 != 0) // parent
                     { // making parent the thing that's outputting to input
 
@@ -335,8 +334,10 @@ void eval(char *cmdline)
                                 j++;
                             }   
                         } else {
+                            // closing file descriptors
                             close(fd[0]);
                             close(fd[1]);
+                            // waiting for pids to stop
                             waitpid(-pid1, NULL, 0);
                             waitpid(-pid2, NULL, 0);
                             j = 0;
